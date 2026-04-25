@@ -1,0 +1,53 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:14-alpine
+    container_name: compito-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: compito
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - compito-net
+
+  api:
+    image: ${DOCKERHUB_USERNAME}/compito-api:latest
+    container_name: compito-api
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD}@db:5432/compito
+      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
+      AUTH0_ISSUER_URL: ${AUTH0_ISSUER_URL}
+      AUTH0_DOMAIN: ${AUTH0_DOMAIN}
+      AUTH0_CLIENT_ID: ${AUTH0_CLIENT_ID}
+      AUTH0_CLIENT_SECRET: ${AUTH0_CLIENT_SECRET}
+      SESSION_TOKEN_SECRET: ${SESSION_TOKEN_SECRET}
+      PRISMA_CLI_QUERY_ENGINE_TYPE: binary
+      PRISMA_CLIENT_ENGINE_TYPE: binary
+    ports:
+      - '3333:3333'
+    networks:
+      - compito-net
+
+  web:
+    image: ${DOCKERHUB_USERNAME}/compito-web:latest
+    container_name: compito-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - '80:80'
+    networks:
+      - compito-net
+
+volumes:
+  postgres_data:
+
+networks:
+  compito-net:
+    driver: bridge
